@@ -37,15 +37,20 @@ The authoritative source code is the branch and merge request linked above. This
 
 ## Current status
 
-**In review — not merged.**
+**Open for review — not approved or merged.**
 
-The latest recorded pipeline is not green yet. At the last check, the integration test and several documentation/check jobs had passed, while the lint job reported two findings in `internal/config/envvars_test.go` (import grouping and an error assertion that should use `require`). Unit tests were still running and coverage had not started. Check the live [pipeline](https://gitlab.com/THAIF74/cli/-/pipelines/3033455489) for the latest result.
+The latest recorded pipeline (#3033455489) finished with a failed status because the lint job found two issues in `internal/config/envvars_test.go`:
 
-No approval or merge is claimed here. This status will be updated after the lint findings and remaining CI jobs are resolved and the upstream merge request receives a final outcome.
+- Import grouping / formatting must satisfy `gci`.
+- The error assertion should use `require`, as requested by `testifylint`.
+
+The following jobs passed: unit tests, integration tests, coverage, comment lint, documentation build and checks, argument checks, embedded-file checks, commit lint, and generated-code checks. The coverage job reported **73.80%**. The optional `govulncheck` job was manual and allowed to fail; it was not run.
+
+The two lint findings still need to be fixed and CI rerun. No approval or merge is claimed.
 
 ## Evidence to add after review
 
-When the upstream merge request is accepted or otherwise reaches a final outcome, this repository can be updated with:
+After the lint findings are resolved and the upstream merge request reaches a final outcome, this repository can be updated with:
 
 - The final accepted patch or relevant contribution files.
 - Final commit and merge details.
