@@ -48,7 +48,7 @@ The following jobs passed: unit tests, integration tests, coverage, comment lint
 
 The two lint findings still need to be fixed and CI rerun. No approval or merge is claimed.
 
-## Archived implementation patch\n\nThe exact unified diff from the current upstream merge request is stored at [`patches/mr-4334-boolean-env-validation.patch`](patches/mr-4334-boolean-env-validation.patch). Pipeline findings are recorded in [`reports/ci-pipeline-3033455489.md`](reports/ci-pipeline-3033455489.md). The patch reflects the submitted MR head; it is not yet the lint-corrected final version.\n\n## Evidence to add after review
+## Archived implementation patch\n\nThe exact unified diff from the latest upstream MR head is stored at [`patches/mr-4334-boolean-env-validation.patch`](patches/mr-4334-boolean-env-validation.patch). The latest commit fixes the two lint findings; the updated pipeline is still running. See [`reports/ci-pipeline-3033455489.md`](reports/ci-pipeline-3033455489.md) for the current CI snapshot.\n\n## Evidence to add after review
 
 After the lint findings are resolved and the upstream merge request reaches a final outcome, this repository can be updated with:
 
