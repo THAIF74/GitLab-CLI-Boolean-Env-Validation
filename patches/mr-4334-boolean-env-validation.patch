@@ -1,0 +1,195 @@
+diff --git a/cmd/glab/main.go b/cmd/glab/main.go
+index 24bf4a322a66c26a27c46faeca07a8ceece5300d..1a2d2052ed2623e3616f2eab5cb98a4d0dc3a86f 100644
+--- a/cmd/glab/main.go
++++ b/cmd/glab/main.go
+@@ -59,6 +59,11 @@ func main() {
+ 		os.Exit(2)
+ 	}
+ 
++	if err := config.ValidateBoolEnvVars(); err != nil {
++		fmt.Fprintf(os.Stderr, "invalid environment configuration: %s\n", err)
++		os.Exit(2)
++	}
++
+ 	// Set Debug mode from config if not previously set by debugMode
+ 	debug := debugMode == "true" || debugMode == "1"
+ 	if !debug {
+diff --git a/internal/config/envvars.go b/internal/config/envvars.go
+index 01b176cdae9013961893c79a5df567cd5eb8733a..9c0471df732b3d6c1e3d7d2785753e997027835c 100644
+--- a/internal/config/envvars.go
++++ b/internal/config/envvars.go
+@@ -2,7 +2,9 @@ package config
+ 
+ import (
+ 	"fmt"
++	"os"
+ 	"slices"
++	"strconv"
+ 	"strings"
+ )
+ 
+@@ -27,20 +29,21 @@ type EnvVarDoc struct {
+ 	Default     string
+ 	Description string
+ 	Group       EnvVarGroup
++	Type        ValueType
+ }
+ 
+ // nonSchemaEnvVars are read directly with os.Getenv rather than resolved
+ // through KeySchema, so they have to be listed by hand.
+ var nonSchemaEnvVars = []EnvVarDoc{
+-	{Name: "FORCE_HYPERLINKS", ConfigKey: "display_hyperlinks", Description: "Set to 1 to force terminal hyperlinks when not writing to a TTY. A falsy value falls through to 'display_hyperlinks'.", Group: GroupBehaviour},
++	{Name: "FORCE_HYPERLINKS", ConfigKey: "display_hyperlinks", Description: "Set to 1 to force terminal hyperlinks when not writing to a TTY. A falsy value falls through to 'display_hyperlinks'.", Type: TypeBool, Group: GroupBehaviour},
+ 	{Name: "GITLAB_GROUP", Description: "Default group for commands that list merge requests, issues, and variables. Used only when '--group' is not given.", Group: GroupAccess},
+ 	{Name: "GITLAB_HEAD_REPO", Description: "Source repository for 'glab mr create'. Used only when '--head' is not given.", Group: GroupAccess},
+-	{Name: "GITLAB_RELEASE_ASSETS_USE_PACKAGE_REGISTRY", Description: "Set to true or 1 to upload release assets to the generic package registry of the project. The '--use-package-registry' flag takes precedence.", Group: GroupBehaviour},
++	{Name: "GITLAB_RELEASE_ASSETS_USE_PACKAGE_REGISTRY", Description: "Set to true or 1 to upload release assets to the generic package registry of the project. The '--use-package-registry' flag takes precedence.", Type: TypeBool, Group: GroupBehaviour},
+ 	{Name: "GITLAB_REPO", Description: "Default repository for commands that accept '--repo'. Used only when '--repo' is not given.", Group: GroupAccess},
+ 	{Name: "GLAB_CONFIG_DIR", Default: "~/.config/glab-cli", Description: "Directory holding the global configuration file. Takes priority over the XDG locations.", Group: GroupBehaviour},
+-	{Name: "GLAB_DEBUG_HTTP", Default: "false", Description: "Set to true to output HTTP transport information (request and response).", Group: GroupBehaviour},
+-	{Name: "GLAB_ENABLE_CI_AUTOLOGIN", Default: "false", Description: "Set to true to enable auto-login in GitLab CI. Together with 'GITLAB_CI=true', glab signs in using predefined CI/CD variables such as 'CI_SERVER_FQDN' and 'CI_JOB_TOKEN', and ignores host variables such as 'GITLAB_HOST'.", Group: GroupAccess},
+-	{Name: "GLAB_FORCE_HYPERLINKS", ConfigKey: "display_hyperlinks", Description: "Set to true to force terminal hyperlinks when not writing to a TTY.", Group: GroupBehaviour},
++	{Name: "GLAB_DEBUG_HTTP", Default: "false", Description: "Set to true to output HTTP transport information (request and response).", Type: TypeBool, Group: GroupBehaviour},
++	{Name: "GLAB_ENABLE_CI_AUTOLOGIN", Default: "false", Description: "Set to true to enable auto-login in GitLab CI. Together with 'GITLAB_CI=true', glab signs in using predefined CI/CD variables such as 'CI_SERVER_FQDN' and 'CI_JOB_TOKEN', and ignores host variables such as 'GITLAB_HOST'.", Type: TypeBool, Group: GroupAccess},
++	{Name: "GLAB_FORCE_HYPERLINKS", ConfigKey: "display_hyperlinks", Description: "Set to true to force terminal hyperlinks when not writing to a TTY.", Type: TypeBool, Group: GroupBehaviour},
+ 	{Name: "NO_COLOR", Description: "Set to any value to avoid printing ANSI escape sequences for color output.", Group: GroupBehaviour},
+ }
+ 
+@@ -79,6 +82,51 @@ func EnvVarsForKey(kd KeyDef) []string {
+ 	return schemaEnvVars(kd.Name)
+ }
+ 
++// ValidateBoolEnvVars rejects invalid values for every boolean environment variable. It
++// checks schema-backed variables and the variables listed separately in nonSchemaEnvVars.
++func ValidateBoolEnvVars() error {
++	var names []string
++	seen := make(map[string]struct{})
++	add := func(name string) {
++		if _, ok := seen[name]; ok {
++			return
++		}
++		seen[name] = struct{}{}
++		names = append(names, name)
++	}
++
++	for _, kd := range KeySchema {
++		if kd.Type != TypeBool {
++			continue
++		}
++		for _, name := range EnvVarsForKey(kd) {
++			add(name)
++		}
++	}
++	for _, ev := range nonSchemaEnvVars {
++		if ev.Type == TypeBool {
++			add(ev.Name)
++		}
++	}
++
++	var invalid []string
++	for _, name := range names {
++		value, ok := os.LookupEnv(name)
++		if !ok || value == "" {
++			continue
++		}
++		if _, err := strconv.ParseBool(value); err != nil {
++			invalid = append(invalid, fmt.Sprintf("%s=%q", name, value))
++		}
++	}
++	if len(invalid) == 0 {
++		return nil
++	}
++
++	slices.Sort(invalid)
++	return fmt.Errorf("invalid boolean environment variable value(s): %s; use true, false, 1, 0, t, or f (case-insensitive)", strings.Join(invalid, ", "))
++}
++
+ // EnvVars returns every environment variable glab reads, one entry per name so
+ // that a reader searching for the name they already have set finds it. Entries
+ // sort by the preferred name for the key, keeping alternatives directly beneath
+diff --git a/internal/config/envvars_test.go b/internal/config/envvars_test.go
+index 01867788edf8efc5921281127fd4a6aff7f1836e..3bc4a791f8adba48914ffc08c99c20abbdb81c67 100644
+--- a/internal/config/envvars_test.go
++++ b/internal/config/envvars_test.go
+@@ -3,6 +3,7 @@
+ package config
+ 
+ import (
++	"os"
+ 	"strings"
+ 	"testing"
+ 
+@@ -54,3 +55,73 @@ func TestEnvVarsForKey_PrefixedNameIsPreferred(t *testing.T) {
+ 		}
+ 	}
+ }
++
++
++// clearBooleanEnvVars keeps the validation tests independent of the host environment.
++func clearBooleanEnvVars(t *testing.T) {
++	t.Helper()
++
++	for _, kd := range KeySchema {
++		if kd.Type != TypeBool {
++			continue
++		}
++		for _, name := range EnvVarsForKey(kd) {
++			t.Setenv(name, "")
++		}
++	}
++	for _, ev := range nonSchemaEnvVars {
++		if ev.Type == TypeBool {
++			t.Setenv(ev.Name, "")
++		}
++	}
++}
++
++func TestValidateBoolEnvVars(t *testing.T) {
++	t.Run("valid schema and non-schema values", func(t *testing.T) {
++		clearBooleanEnvVars(t)
++		t.Setenv("GLAB_CHECK_UPDATE", "false")
++		t.Setenv("FORCE_HYPERLINKS", "1")
++
++		assert.NoError(t, ValidateBoolEnvVars())
++	})
++
++	t.Run("unset values are ignored", func(t *testing.T) {
++		clearBooleanEnvVars(t)
++		assert.NoError(t, os.Unsetenv("GLAB_CHECK_UPDATE"))
++
++		assert.NoError(t, ValidateBoolEnvVars())
++	})
++
++	t.Run("empty values are ignored", func(t *testing.T) {
++		clearBooleanEnvVars(t)
++		t.Setenv("GLAB_CHECK_UPDATE", "")
++
++		assert.NoError(t, ValidateBoolEnvVars())
++	})
++
++	t.Run("invalid schema value is reported", func(t *testing.T) {
++		clearBooleanEnvVars(t)
++		t.Setenv("GLAB_CHECK_UPDATE", "maybe")
++
++		err := ValidateBoolEnvVars()
++		assert.ErrorContains(t, err, "GLAB_CHECK_UPDATE=\"maybe\"")
++	})
++
++	t.Run("invalid non-schema value is reported", func(t *testing.T) {
++		clearBooleanEnvVars(t)
++		t.Setenv("FORCE_HYPERLINKS", "sure")
++
++		err := ValidateBoolEnvVars()
++		assert.ErrorContains(t, err, "FORCE_HYPERLINKS=\"sure\"")
++	})
++
++	t.Run("all invalid values are reported together", func(t *testing.T) {
++		clearBooleanEnvVars(t)
++		t.Setenv("GLAB_CHECK_UPDATE", "maybe")
++		t.Setenv("FORCE_HYPERLINKS", "sure")
++
++		err := ValidateBoolEnvVars()
++		assert.ErrorContains(t, err, "FORCE_HYPERLINKS=\"sure\"")
++		assert.ErrorContains(t, err, "GLAB_CHECK_UPDATE=\"maybe\"")
++	})
++}
