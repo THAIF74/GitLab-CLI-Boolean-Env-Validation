@@ -108,10 +108,10 @@ index 01b176cdae9013961893c79a5df567cd5eb8733a..9c0471df732b3d6c1e3d7d2785753e99
  // that a reader searching for the name they already have set finds it. Entries
  // sort by the preferred name for the key, keeping alternatives directly beneath
 diff --git a/internal/config/envvars_test.go b/internal/config/envvars_test.go
-index 01867788edf8efc5921281127fd4a6aff7f1836e..3bc4a791f8adba48914ffc08c99c20abbdb81c67 100644
+index 01867788edf8efc5921281127fd4a6aff7f1836e..2849b9d2d9ce78f134a7f0076f9889752cec2689 100644
 --- a/internal/config/envvars_test.go
 +++ b/internal/config/envvars_test.go
-@@ -3,6 +3,7 @@
+@@ -3,10 +3,12 @@
  package config
  
  import (
@@ -119,11 +119,15 @@ index 01867788edf8efc5921281127fd4a6aff7f1836e..3bc4a791f8adba48914ffc08c99c20ab
  	"strings"
  	"testing"
  
-@@ -54,3 +55,73 @@ func TestEnvVarsForKey_PrefixedNameIsPreferred(t *testing.T) {
+ 	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
+ )
+ 
+ // Unprefixed names such as PROXY or CA_CERT are easy to collide with on a
+@@ -54,3 +56,72 @@ func TestEnvVarsForKey_PrefixedNameIsPreferred(t *testing.T) {
  		}
  	}
  }
-+
 +
 +// clearBooleanEnvVars keeps the validation tests independent of the host environment.
 +func clearBooleanEnvVars(t *testing.T) {
@@ -172,7 +176,7 @@ index 01867788edf8efc5921281127fd4a6aff7f1836e..3bc4a791f8adba48914ffc08c99c20ab
 +		t.Setenv("GLAB_CHECK_UPDATE", "maybe")
 +
 +		err := ValidateBoolEnvVars()
-+		assert.ErrorContains(t, err, "GLAB_CHECK_UPDATE=\"maybe\"")
++		require.ErrorContains(t, err, "GLAB_CHECK_UPDATE=\"maybe\"")
 +	})
 +
 +	t.Run("invalid non-schema value is reported", func(t *testing.T) {
@@ -180,7 +184,7 @@ index 01867788edf8efc5921281127fd4a6aff7f1836e..3bc4a791f8adba48914ffc08c99c20ab
 +		t.Setenv("FORCE_HYPERLINKS", "sure")
 +
 +		err := ValidateBoolEnvVars()
-+		assert.ErrorContains(t, err, "FORCE_HYPERLINKS=\"sure\"")
++		require.ErrorContains(t, err, "FORCE_HYPERLINKS=\"sure\"")
 +	})
 +
 +	t.Run("all invalid values are reported together", func(t *testing.T) {
@@ -189,7 +193,7 @@ index 01867788edf8efc5921281127fd4a6aff7f1836e..3bc4a791f8adba48914ffc08c99c20ab
 +		t.Setenv("FORCE_HYPERLINKS", "sure")
 +
 +		err := ValidateBoolEnvVars()
-+		assert.ErrorContains(t, err, "FORCE_HYPERLINKS=\"sure\"")
-+		assert.ErrorContains(t, err, "GLAB_CHECK_UPDATE=\"maybe\"")
++		require.ErrorContains(t, err, "FORCE_HYPERLINKS=\"sure\"")
++		require.ErrorContains(t, err, "GLAB_CHECK_UPDATE=\"maybe\"")
 +	})
 +}
