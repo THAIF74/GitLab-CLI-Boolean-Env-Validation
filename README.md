@@ -9,9 +9,9 @@ The contribution proposes validating boolean environment-variable values during 
 - **Upstream project:** [gitlab-org/cli](https://gitlab.com/gitlab-org/cli)
 - **Issue:** [#7969 — Invalid environment variable values should return an error instead of running](https://gitlab.com/gitlab-org/cli/-/work_items/7969)
 - **Merge request:** [!4334 — fix(config): reject invalid boolean environment values](https://gitlab.com/gitlab-org/cli/-/merge_requests/4334)
-- **CI pipeline:** [Pipeline #3033455489](https://gitlab.com/THAIF74/cli/-/pipelines/3033455489)
+- **CI pipeline:** [Pipeline #3040385131](https://gitlab.com/THAIF74/cli/-/pipelines/3040385131)
 - **Contribution branch:** `fix/validate-boolean-env-vars-7969`
-- **Latest recorded commit:** [`9a1049ac`](https://gitlab.com/THAIF74/cli/-/commit/9a1049acf5a455c25aa0a1030ade73d63ab0332e)
+- **Latest recorded commit:** [`c4e4cd81`](https://gitlab.com/THAIF74/cli/-/commit/c4e4cd81a6dacf5b05155c44620d4115f0852760)
 
 ## Problem
 
@@ -37,18 +37,15 @@ The authoritative source code is the branch and merge request linked above. This
 
 ## Current status
 
-**Open for review — not approved or merged.**
+<badge>CI passed</badge>
 
-The latest recorded pipeline (#3033455489) finished with a failed status because the lint job found two issues in `internal/config/envvars_test.go`:
+**Implementation and required CI checks are complete. The upstream MR remains open and awaits maintainer/code-owner approval; it is not merged.**
 
-- Import grouping / formatting must satisfy `gci`.
-- The error assertion should use `require`, as requested by `testifylint`.
+The lint fixes were committed on 2026-11-07 as `c4e4cd81a6dacf5b05155c44620d4115f0852760`. The latest pipeline [#3040385131](https://gitlab.com/THAIF74/cli/-/pipelines/3040385131) passed all required jobs, including unit tests, integration tests, coverage, lint (0 issues), and documentation checks. Coverage: **73.80%**. The optional `govulncheck` job was manual and not run.
 
-The following jobs passed: unit tests, integration tests, coverage, comment lint, documentation build and checks, argument checks, embedded-file checks, commit lint, and generated-code checks. The coverage job reported **73.80%**. The optional `govulncheck` job was manual and allowed to fail; it was not run.
+GitLab reports blocking discussions resolved, but the merge status is `not_approved`; approval from the required code owners is still outstanding. Do not treat this contribution as merged.
 
-The two lint findings still need to be fixed and CI rerun. No approval or merge is claimed.
-
-## Archived implementation patch\n\nThe exact unified diff from the latest upstream MR head is stored at [`patches/mr-4334-boolean-env-validation.patch`](patches/mr-4334-boolean-env-validation.patch). The latest commit fixes the two lint findings; the updated pipeline is still running. See [`reports/ci-pipeline-3033455489.md`](reports/ci-pipeline-3033455489.md) for the current CI snapshot.\n\n## Evidence to add after review
+## Evidence to add after review
 
 After the lint findings are resolved and the upstream merge request reaches a final outcome, this repository can be updated with:
 
